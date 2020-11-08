@@ -22,6 +22,8 @@ matrix_dist={'PMA_1':{'HOSP_1':10, 'HOSP_2':10,'PMA_2':10},
 # probando Insertion_Heuristic
 s=Constructive_heuristic(ambulancias, matrix_dist, hospitales, pacientes,1)
 
+s1=Rem_all(s)
+
 for i in range(len(s['ambulancias'])):
     print('ambulancia nro: '+str(s['ambulancias'][i].num))
     print('ambulancia hospital inicial: '+s['ambulancias'][i].hospital)

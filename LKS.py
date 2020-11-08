@@ -100,7 +100,7 @@ def Constructive_heuristic (ambulancias, matrix_dist, hospitales, pacientes, alp
     while ((Chsum>0 or condicion_tiempo>0) and len(pacientes_no_atendidos)>0):
         index_a=T.index(min(T))
         a=ambulancias[index_a]
-        Cp=a.pac_cercanos(matrix_dist,[p for p in pacientes if p.num in pacientes_no_atendidos],alpha) #lista de pacientes mas cercanos
+        Cp=a.pac_cercanos(matrix_dist,[p for p in pacientes if p in pacientes_no_atendidos],alpha) #lista de pacientes mas cercanos
         i=Cp[random.randint(0,alpha-1)] # paciente aleatorio
         index_P_na=pacientes_no_atendidos.index(i)
         index_p=pacientes.index(i)
@@ -133,6 +133,7 @@ def Rem2(s,matrix_dist):
     # removemos 2 rutas de las ambulancias con mayor tiempo final
     i=0 
     while i<2:
+        i+=1
         T=[a.tiempo_final for a in s['ambulancias']]
         Tmax=max(T)
         index_a=T.index(Tmax)
@@ -140,7 +141,10 @@ def Rem2(s,matrix_dist):
         # removemos el último paciente de la ruta  
         s['ambulancias'][index_a],s['hospitales'],s['pacientes']=remove_route(a,matrix_dist,s['hospitales'], s['pacientes'])
         
-        i=+1
+        # s['ambulancias'][index_a]=a
+        # s['hospitales']=hosp
+        # s['pacientes']=pac
+        
     
     return s
 
@@ -150,7 +154,7 @@ def Rem_rand(s,matrix_dist):
     Tmax=max(T)
     index_a=T.index(Tmax)
     a=s['ambulancias'][index_a]
-    rand=random.randint(0,len(a.pacientes))
+    rand=random.randint(0,len([p_num for p_num in a.route if isinstance(p_num,int)]))
     # removemos el  paciente aleatorio de la ruta  
     s['ambulancias'][index_a],s['hospitales'],s['pacientes']=remove_route(a,matrix_dist,s['hospitales'], s['pacientes'],rand)
     return s
@@ -161,17 +165,17 @@ def Rem_all(s):
     index_a=T.index(Tmax)
     a=s['ambulancias'][index_a]
     # quitar a los pacientes atendidos:
-    for p in a.pacientes:
+    pacientes_a=[s['pacientes'].index(p) for p in s['pacientes'] if p.ambulancia==a.num]
+    for p in pacientes_a:
         s['pacientes'][p].atendido=0
         s['pacientes'][p].hosp=''
         s['pacientes'][p].ambulancia=None
         s['pacientes'][p].w=0
-    hosp_usados=[h for h in a.route[1:] if h[:4]=="HOSP"]
+    hosp_usados=[h for h in a.route[1:] if isinstance(h, str)]
     hosp_unico=list(set(hosp_usados))
     for h in hosp_unico:
         s['hospitales'][h]=s['hospitales'][h]+hosp_usados.count(h)
     # modificar los parametros de la ambulancia
-    a.pacientes=[]
     a.tiempo_final=0
     h=a.route[0]
     a.route=[h]
@@ -180,14 +184,15 @@ def Rem_all(s):
 
 
 def remove_route(ambulancia,matrix_dist,hospitales, pacientes,paciente=-1):
-    a_num=ambulancia.num
-    pacientes_a=[p for p in pacientes if p.ambulancia==a_num] # pacientes atendidos por la ambulancia a
+    pacientes_a=[p for p in ambulancia.route if isinstance(p,int)] # pacientes atendidos por la ambulancia a
     if paciente==-1:
-        w_pacientes=[p.w for p in pacientes_a]                   # tiempo de visita de la ambulancia a los pacientes
-        p_index=pacientes_a.index(max(w_pacientes))
-        p=pacientes_a[p_index]                    # paciente con mayor tiempo
+        w_pacientes=[p.w for p in pacientes if p.num in pacientes_a]                   # tiempo de visita de la ambulancia a los pacientes
+        p_index=w_pacientes.index(max(w_pacientes))
+        p_num=pacientes_a[p_index]                    # paciente con mayor tiempo
     else:
-        p=pacientes_a[paciente]
+        p_num=pacientes_a[paciente]
+    
+    p=[p for p in pacientes if p.num==p_num][0]
     # devolver la capacidad a los hospitales 
     hospitales[p.hosp]=hospitales[p.hosp]+1
 
@@ -200,44 +205,21 @@ def remove_route(ambulancia,matrix_dist,hospitales, pacientes,paciente=-1):
     pacientes[p_index]=p
     
     # actualizar ruta de ambulancia
-    index_route=ambulancia.pacientes.index(p.num)
-    cant_pacientes=0
-    item=0
-    while cant_pacientes!=index_route:
-        if ambulancia.route[item][:3]=='PMA':
-            cant_pacientes=+1
-        item=+1                             # item se vuelve la posición en donde se encuentra el PMA al que el paciente p pertenece
-    
+    item=ambulancia.route.index(p.num)
     ambulancia.route=ambulancia.route[:item]+ambulancia.route[item+2:]
-    
-    #actualizarl los tiempos de los pacientes
-    num_pac=[p.num for p in ambulancia.pacientes]
-    index_pma=[i for i in range(len(ambulancia.route)) if ambulancia.route[i][:3]=="PMA"] # indices de los pmas en la ruta de la ambulancia a
-    index_pac=[pacientes.index(p) for p in pacientes if p.num in num_pac] # indices de los pacientes en la lista de pacientes
 
-    for i in range(len(ambulancia.pacientes)): # iterar en los pacientes de la ambulancia a para actualizar los tiempos de visita a los pacientes
-        w=ambulancia.calc_tiempo(ambulancia.route[index_pma[i]],matrix_dist,pacientes)
-        pacientes[index_pac[i]].w=w
+    # actualizar el tiempo de la ambulancia
+    ambulancia.calc_tiempo_f(matrix_dist,pacientes)
+    
+    #removemos el paciente de la lista de pacientes
+    pacientes_a.remove(p_num)
+
+    #actualizar los tiempos de los pacientes
+    for i in pacientes_a: # iterar en los pacientes de la ambulancia a para actualizar los tiempos de visita a los pacientes
+        index_route=ambulancia.route.index(i)
+        w=ambulancia.calc_tiempo(index_route,matrix_dist,pacientes)
+        index_pac=pacientes.index([p for p in pacientes if p.num==i][0])
+        pacientes[index_pac].w=w
+        
 
     return ambulancia,hospitales,pacientes
-
-# def VND(s,matrix_dist):
-#     f_s=funcion_obj(s)
-#     s_optim=s
-#     f_Soptim=f_s
-#     lamb=[i_p_relocate, i_p_swap,s_h_change,e_p_swap, e_p_2opt, h_swap,route_reasignment]
-#     i=0
-#     while i<len(lamb):
-#         s=lamb[i](s,matrix_dist)
-#         if (funcion_obj(s)>f_Soptim):
-#             s_optim=s
-#             f_Soptim=funcion_obj(s)
-            
-#             i=0
-#         else:
-#             i=+1
-#     return s_optim
-
-
-# def i_p_relocate(s,matrix_dist):
-#     # escoger una 

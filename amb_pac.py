@@ -19,16 +19,17 @@ class ambulancia:
         puntos=traducir_ruta(self.route[:i+1],pacientes)
         
         trayectoria=0
-        for punto in range(1,len(puntos)-1):
+        for punto in range(1,len(puntos)):
             trayectoria=trayectoria+matrix_distance[puntos[punto-1]][puntos[punto]]
         return trayectoria/self.velocidad
 
     def calc_tiempo_f(self, matrix_distance,pacientes):
         if len(self.route)<=1:
-            return 0
+            self.tiempo_final=0
+            return self.tiempo_final
         trayectoria=0
         puntos=traducir_ruta(self.route,pacientes)
-        for punto in range(1,len(self.route)-1):
+        for punto in range(1,len(self.route)):
             trayectoria=trayectoria+matrix_distance[puntos[punto-1]][puntos[punto]]
         self.tiempo_final=trayectoria/ self.velocidad
         return self.tiempo_final
