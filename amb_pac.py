@@ -50,9 +50,11 @@ class ambulancia:
         distancias={ pma: matrix_dist[hosp][pma] for pma in pmas}
         sorted_dist = sorted(distancias, key=distancias.get)[:alpha+1] # distancias de PMA
         Cp=[]
-        for i in range(alpha):
-            a= random.randint(0,alpha-1)
+        i=0
+        while i < alpha: 
+            a= random.randint(0,len(sorted_dist)-1)
             Cp.append(pacientes[lista_pmas.index(sorted_dist[a])])
+            i+=1
         return Cp
 def traducir_ruta(lista, pacientes):
     trad_ruta=[]

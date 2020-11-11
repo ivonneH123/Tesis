@@ -1,15 +1,17 @@
 import random
 from amb_pac import hosp_cercano
+from VND import VND, funcion_obj
+
 def LNS_metah(I,L,ambulancias,matrix_dist,hospitales,pacientes):
     s_optim={} # inicializar soluciones en vacio
     s={}
 
-    f_optim=0 # funcion objetivo de la solución óptima hasta el momento
-    f_actual=0 # funcion objetivo de la solución actual
+    # f_optim=0 # funcion objetivo de la solución óptima hasta el momento
+    # f_actual=0 # funcion objetivo de la solución actual
     
     i=0 #contador de iteraciones
     l=0 #contador de iteraciones sin mejoras
-    while (i<l):
+    while (i<I):
         if (i == 0 or l == L):
             rand = random.randint(0,1)
             alpha = random.randint(2,5)
@@ -17,7 +19,7 @@ def LNS_metah(I,L,ambulancias,matrix_dist,hospitales,pacientes):
                 s=Insertion_Heuristic(ambulancias,matrix_dist,hospitales,pacientes, alpha)
             elif rand==1:
                 s=Constructive_heuristic(ambulancias,matrix_dist,hospitales,pacientes, alpha)
-            l=1
+            l=0
         else:
             rand=random.randint(0,2)
             if rand==0:
@@ -27,14 +29,21 @@ def LNS_metah(I,L,ambulancias,matrix_dist,hospitales,pacientes):
             else:
                 s=Rem_all(s)
             s=Constructive_heuristic(s['ambulancias'],matrix_dist, s['hospitales'],s['pacientes'],1) # reparar las rutas
+        
+        s=VND(s, matrix_dist)
+        s=Constructive_heuristic(s['ambulancias'],matrix_dist, s['hospitales'],s['pacientes'],1) #añadir más pacientes si el tiempo se redujo
+
+        if funcion_obj(s) > funcion_obj(s_optim):
+            s_optim=s
+            l=0
+        else:
+            l+=1
+        i+=1
+    return s
 
 
 
 
-
-
-def funcion_obj(s):
-    return sum([ x.atendido for x in s['pacientes']])
 
 """
 ambulancias= lista con objetos de clase ambulancia
@@ -105,7 +114,7 @@ def Constructive_heuristic (ambulancias, matrix_dist, hospitales, pacientes, alp
         index_P_na=pacientes_no_atendidos.index(i)
         index_p=pacientes.index(i)
         Ch= hosp_cercano(i.pma,hospitales,matrix_dist,alpha) # lista de hospitales alpha más cercanos
-        hosp= Ch[random.randint(0,alpha-1)]  #hospital aleatorio
+        hosp= Ch[random.randint(0,(alpha if alpha<len(Ch) else len(Ch))-1 )]  #hospital aleatorio
         i.atender_paciente(a, hosp, len(a.route), matrix_dist,pacientes)
         # actualizar lista de pacientes no atendidos
         pacientes_no_atendidos.pop(index_P_na)
@@ -154,7 +163,7 @@ def Rem_rand(s,matrix_dist):
     Tmax=max(T)
     index_a=T.index(Tmax)
     a=s['ambulancias'][index_a]
-    rand=random.randint(0,len([p_num for p_num in a.route if isinstance(p_num,int)]))
+    rand=random.randint(0,len([p_num for p_num in a.route if isinstance(p_num,int)])-1)
     # removemos el  paciente aleatorio de la ruta  
     s['ambulancias'][index_a],s['hospitales'],s['pacientes']=remove_route(a,matrix_dist,s['hospitales'], s['pacientes'],rand)
     return s

@@ -1,5 +1,5 @@
 from amb_pac import *
-from LKS import *
+from LKS import LNS_metah
 
 hospitales={'HOSP_1':30,'HOSP_2':30}
 
@@ -20,9 +20,7 @@ matrix_dist={'PMA_1':{'HOSP_1':10, 'HOSP_2':10,'PMA_2':10},
             'HOSP_2':{'PMA_1':10, 'HOSP_1':10,'PMA_2':10}}
 
 # probando Insertion_Heuristic
-s=Constructive_heuristic(ambulancias, matrix_dist, hospitales, pacientes,1)
-
-s1=Rem_all(s)
+s=LNS_metah(10,5,ambulancias,matrix_dist,hospitales,pacientes)
 
 for i in range(len(s['ambulancias'])):
     print('ambulancia nro: '+str(s['ambulancias'][i].num))
