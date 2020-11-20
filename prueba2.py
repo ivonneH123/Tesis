@@ -3,15 +3,13 @@ from LKS import LNS_metah
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
-import time
 # import os
 # os.chdir('D:\Ivonne\Documents\github\tesis\Tesis')
 # parámetros de la heurística
-area='3'
-n_amb=8
-I=120
-L=I/10
-
+area='1'
+n_amb=9
+L=10
+I=20
 nom_file='area_'+str(area)+'/'+'sol_area_'+str(area)+'_'+str(n_amb)+'amb.txt'
 
 #importar los datasets
@@ -46,10 +44,8 @@ with open('datos/distancias.json') as json_file:
 
 
 # probando Insertion_Heuristic
-start_time=time.time()
-s,g=LNS_metah(I,L,ambulancias,matrix_dist,hospitales,pacientes)
+s,g=LNS_metah(10,5,ambulancias,matrix_dist,hospitales,pacientes)
 data={}
-data['tiempo_ejecucion']=time.time()-start_time
 data['g']=g
 data['param']={'I':I,'L':L}
 # guardar la solucion:
