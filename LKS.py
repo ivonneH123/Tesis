@@ -2,13 +2,16 @@ import random
 from amb_pac import hosp_cercano
 from VND import VND, funcion_obj
 import tqdm
-
+import copy
+def verificar_tiempoLimite(s):
+    # como todos los pacientes tienen el mismo tiempo límite:
+    B=[p.b for p in s['pacientes'] ]
+    condicion=[p.w<B[0] for p in s['pacientes']]
+    resultado= True if sum(condicion)==len(s['pacientes']) else False
+    return resultado
 def LNS_metah(I,L,ambulancias,matrix_dist,hospitales,pacientes):
     s_optim={} # inicializar soluciones en vacio
     s={}
-
-    # f_optim=0 # funcion objetivo de la solución óptima hasta el momento
-    # f_actual=0 # funcion objetivo de la solución actual
     
     i=0 #contador de iteraciones
     l=0 #contador de iteraciones sin mejoras
@@ -17,26 +20,32 @@ def LNS_metah(I,L,ambulancias,matrix_dist,hospitales,pacientes):
     g['f(s)']=[]
     pbar=tqdm.tqdm(total=I, initial=1)
     # #debbuging
-    # d=[]
+    d=[]
     while (i<I):
         if (i == 0 or l == L):
-            rand = random.randint(0,1)
+            rand = 1#random.randint(0,1)
             alpha = random.randint(2,5)
             if rand ==0:
-                s=Insertion_Heuristic(ambulancias,matrix_dist,hospitales,pacientes, alpha)
+                s=Insertion_Heuristic(copy.deepcopy(ambulancias),matrix_dist,copy.deepcopy(hospitales),copy.deepcopy(pacientes), alpha)
             elif rand==1:
-                s=Constructive_heuristic(ambulancias,matrix_dist,hospitales,pacientes, alpha)
+                s=Constructive_heuristic(copy.deepcopy(ambulancias),matrix_dist,copy.deepcopy(hospitales),copy.deepcopy(pacientes), alpha)
             l=0
         else:
             rand=random.randint(0,2)
             # #debbuging
-            # d.append(rand)
+            d.append(rand)
             if rand==0:
                 s=Rem2(s,matrix_dist)
+                # if verificar_tiempoLimite(s)==False:
+                #     h=0
             elif rand==1:
                 s=Rem_rand(s,matrix_dist)
+                # if verificar_tiempoLimite(s)==False:
+                #     h=0
             else:
                 s=Rem_all(s,matrix_dist)
+                # if verificar_tiempoLimite(s)==False:
+                #     h=0
 
             s=Constructive_heuristic(s['ambulancias'],matrix_dist, s['hospitales'],s['pacientes'],1) # reparar las rutas
 
@@ -47,7 +56,9 @@ def LNS_metah(I,L,ambulancias,matrix_dist,hospitales,pacientes):
         #         h=3
 
         if funcion_obj(s) > funcion_obj(s_optim):
-            s_optim=s
+            s_optim=copy.deepcopy(s)
+            # if verificar_tiempoLimite(s_optim)==False:
+            #     h=0
             l=0
         else:
             l+=1
@@ -56,7 +67,7 @@ def LNS_metah(I,L,ambulancias,matrix_dist,hospitales,pacientes):
         i+=1
         pbar.update(1)
     pbar.close()
-    return s,g
+    return s_optim,g
 
 # def debbug_pac_ruta(s):
 #     rutas=[a.route for a in s['ambulancias']]
@@ -78,13 +89,13 @@ alpha= número aleatorio entre 2 y 5
 def Insertion_Heuristic(ambulancias, matrix_dist, hospitales, pacientes, alpha):
     a=ambulancias[random.randint(0,len(ambulancias)-1)]
     ambulancias_no_usadas=[a.num for a in ambulancias]
-    h=a.hospital
     Chsum=sum(hospitales.values()) # suma de las capacidades en los hospitales
     B=max([x.b for x in pacientes]) # ventana de tiempo tardío para la atención de los pacientes
     t=a.tiempo_final
     pacientes_no_atendidos=[p for p in pacientes if p.atendido==0]
+    t=0
 
-    while ((Chsum>0 and t<B )and len(pacientes_no_atendidos)>0 and len(ambulancias_no_usadas)>0):
+    while ((Chsum>0 and t<B )and len(pacientes_no_atendidos)>0 and len(ambulancias_no_usadas)>0 and t<B):
         index_a=ambulancias.index(a)
         index_p_no=random.randint(0,len(pacientes_no_atendidos)-1)
         j=pacientes_no_atendidos[index_p_no] # paciente seleccionado al azar
@@ -125,23 +136,41 @@ def Constructive_heuristic (ambulancias, matrix_dist, hospitales, pacientes, alp
     Chsum=sum(hospitales.values()) # suma de las capacidades en los hospitales
     B=max([x.b for x in pacientes]) # ventana de tiempo tardío para la atención de los pacientes
     T =[a.tiempo_final for a in ambulancias]
-    condicion_tiempo=sum([x<B for x in T])
+    condicion_tiempo=sum([t<B for t in T])
     pacientes_no_atendidos=[p for p in pacientes if p.atendido==0]
-
-    while (Chsum>0 and condicion_tiempo>0 and len(pacientes_no_atendidos)>0):
+    t_f=0
+    #debugg
+    # d=None
+    # if verificar_tiempoLimite({"ambulancias":ambulancias,"hospitales":hospitales,"pacientes":pacientes})==False:
+    #     h=0
+    #añadir la condicion para q no salga un paciente con tiempo más de 4
+    while (Chsum>0 and condicion_tiempo==len(ambulancias) and len(pacientes_no_atendidos)>0 and t_f<B):
         index_a=T.index(min(T))
-        a=ambulancias[index_a]
+        a=copy.deepcopy(ambulancias[index_a])
+        # if a.tiempo_final>B:
+        #     print('kitkat_beta')
+        #     break
         Cp=a.pac_cercanos(matrix_dist,[p for p in pacientes if p in pacientes_no_atendidos],alpha) #lista de pacientes mas cercanos
         i=Cp[random.randint(0,alpha-1)] # paciente aleatorio
         index_P_na=pacientes_no_atendidos.index(i) #indice del paciente en la lista de no atendido
         index_p=pacientes.index(i) # indice del paciente en la lista de pacientes
         Ch= hosp_cercano(i.pma,hospitales,matrix_dist,alpha) # lista de hospitales alpha más cercanos
         hosp= Ch[random.randint(0,(alpha if alpha<len(Ch) else len(Ch))-1 )]  #hospital aleatorio
+        i=copy.deepcopy(i) #hacer una copia del paciente para no sobreescribir los datos en la lista de pacientes
+        a_ruta=a.route[:]# copiar la ruta de la ambulancia, en caso el tiempo de visita exceda el tiempo limite del paciente
         i.atender_paciente(a, hosp, len(a.route), matrix_dist,pacientes)
+        if i.w>B:
+            a.route=a_ruta
+            a.tiempo_final=a.calc_tiempo_f(matrix_dist,pacientes)
+            # d=[a,i]
+            # print('kitkat')
+            break
         # actualizar lista de pacientes no atendidos
         pacientes_no_atendidos.pop(index_P_na)
         # actualizar lista de pacientes
         pacientes[index_p]=i
+        # actualizar el tiempo final de la ambulancia
+        a.tiempo_final=a.calc_tiempo_f(matrix_dist,pacientes)
         #actualizar lista de ambulancias
         ambulancias[index_a]=a
         #actualizar capacidad de hospitales
@@ -149,16 +178,23 @@ def Constructive_heuristic (ambulancias, matrix_dist, hospitales, pacientes, alp
 
         # actualizar las variables de tiempo final
         T =[a.tiempo_final for a in ambulancias]
-        condicion_tiempo=sum([x<B for x in T])
+        condicion_tiempo=sum([t<B for t in T])
         Chsum=sum(hospitales.values())
         
         #escoger otra ambulancia con el menor tiempo final
         index_a=T.index(min(T))
         a_nueva=ambulancias[index_a]
-        a=a_nueva
+        a=copy.deepcopy(a_nueva)
+        t_f=a.calc_tiempo_f(matrix_dist,pacientes)
+        #debbug
+        # if verificar_tiempoLimite({"ambulancias":ambulancias,"hospitales":hospitales,"pacientes":pacientes})==False:
+        #     h=0
+        
     s={"ambulancias":ambulancias,"hospitales":hospitales,"pacientes":pacientes}
-    # if len(debbug_pac_ruta(s))>87:
-    #     h=3
+    #debugg
+    # if verificar_tiempoLimite(s)==False:
+    #     d
+    #     h=0
     return s
 
 

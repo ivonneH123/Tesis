@@ -7,8 +7,9 @@ import time
 # import os
 # os.chdir('D:\Ivonne\Documents\github\tesis\Tesis')
 # parámetros de la heurística
-area='3'
-n_amb=8
+#{'1':4,'2':27,'3':6,'4':7,5a': 3}
+area='4'
+n_amb=7
 I=120
 L=I/10
 
@@ -22,7 +23,7 @@ df_h=df_h_tot.loc[df_h_tot['Area']==area]
 df_pma_tot=pd.read_excel('datos/pma_completo.xlsx')
 df_pma_tot['Area funcional']=df_pma_tot['Area funcional'].astype(str)
 df_pma=df_pma_tot.loc[df_pma_tot['Area funcional']==area]
-print(df_pma_tot['Area funcional'].value_counts()[0])
+
 hospitales={h:cap_h for (h,cap_h) in zip(df_h['nom_pulp'],df_h['CAMAS'])}
 
 # arreglo de 10 hospitales-ambulancias
@@ -63,6 +64,7 @@ for amb in s['ambulancias']:
 data['pacientes']={}
 for pac in s['pacientes']:
     data['pacientes'][str(pac.num)]={}
+    data['pacientes'][str(pac.num)]['pma']=pac.pma
     data['pacientes'][str(pac.num)]['hosp']=pac.hosp
     data['pacientes'][str(pac.num)]['atendido']=pac.atendido
     data['pacientes'][str(pac.num)]['ambulancia']=pac.ambulancia

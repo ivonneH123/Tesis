@@ -1,5 +1,6 @@
 
 import random
+import copy
 def funcion_obj(s):
     try:
         return sum([ x.atendido for x in s['pacientes']])
@@ -10,8 +11,8 @@ def sum_tiempo(s):
 def verificar_tiempoLimite(s):
     # como todos los pacientes tienen el mismo tiempo límite:
     B=[p.b for p in s['pacientes'] ]
-    condicion=[a.tiempo_final<B[0] for a in s['ambulancias']]
-    resultado= True if sum(condicion)==len(s['ambulancias']) else False
+    condicion=[p.w<B[0] for p in s['pacientes']]
+    resultado= True if sum(condicion)==len(s['pacientes']) else False
     return resultado
 
 # #debuggeo
@@ -25,14 +26,14 @@ def verificar_tiempoLimite(s):
 
 def VND(s,matrix_dist):
     f_s=sum_tiempo(s)
-    s_optim=s.copy()
+    s_optim=copy.deepcopy(s)
     f_Soptim=f_s
     lamb=[i_p_relocate, i_p_swap,e_p_swap, e_p_2opt,route_reasignment]
     i=0
     while i<len(lamb):
         s=lamb[i](s,matrix_dist)
         if (sum_tiempo(s)<f_Soptim and verificar_tiempoLimite(s)):
-            s_optim=s
+            s_optim=copy.deepcopy(s)
             f_Soptim=sum_tiempo(s)
             
             i=0
