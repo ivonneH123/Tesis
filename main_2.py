@@ -8,10 +8,10 @@ import time
 # os.chdir('D:\Ivonne\Documents\github\tesis\Tesis')
 # parámetros de la heurística
 #capacidades a evaluar: 70,50 y 20 %
-areas=['3']
-capacidad=70
-n_amb=5
-I=120
+areas=['6a','6b']
+capacidad=20
+n_amb=1
+I=160
 L=I/10
 nom_file_1='area'
 nom_file_2='/'+'sol_area_'
